@@ -100,12 +100,9 @@ Clone the repo and build:
 ```bash
 git clone https://github.com/ArduPilot/ardupilot_gazebo
 cd ardupilot_gazebo
-cmake -S . -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build --parallel `nproc`
 ```
-
-
-
 
 
 ## Usage
@@ -182,6 +179,17 @@ greater than one:
 ```bash
 MANUAL> param set SIM_SPEEDUP 10
 ```
+
+### 4. Zoom plugin demo
+
+#### Run Gazebo
+
+```bash
+gz sim -v4 -r gimbal.sdf
+```
+
+The `-v4` parameter is not mandatory, it shows additional information and is
+useful for troubleshooting.
 
 ## Models
 
