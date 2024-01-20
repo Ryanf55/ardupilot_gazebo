@@ -64,23 +64,13 @@ brew update
 brew install rapidjson
 ```
 
-Ensure the `GZ_VERSION` environment variable is set to either
-`garden` or `harmonic`.
-
-Clone the repo and build:
-
-```bash
-git clone https://github.com/ArduPilot/ardupilot_gazebo
-cd ardupilot_gazebo
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo
-make -j4
-```
-
 ## Configure
 
 Set the Gazebo environment variables in your `.bashrc` or `.zshrc` or in 
 the terminal used to run Gazebo.
+
+Ensure the `GZ_VERSION` environment variable is set to either
+`garden` or `harmonic`.
 
 #### Terminal
 
@@ -101,6 +91,22 @@ echo 'export GZ_SIM_RESOURCE_PATH=$HOME/ardupilot_gazebo/models:$HOME/ardupilot_
 ```
 
 Reload your terminal with `source ~/.bashrc` (or `source ~/.zshrc` on macOS).
+
+## Build 
+
+
+Clone the repo and build:
+
+```bash
+git clone https://github.com/ArduPilot/ardupilot_gazebo
+cd ardupilot_gazebo
+cmake -S . -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build --parallel `nproc`
+```
+
+
+
+
 
 ## Usage
 
