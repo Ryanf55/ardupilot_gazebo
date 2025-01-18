@@ -246,3 +246,110 @@ Click on the images to see further details.
 
 For issues concerning installing and running Gazebo on your platform please
 consult the Gazebo documentation for [troubleshooting frequent issues](https://gazebosim.org/docs/harmonic/troubleshooting#ubuntu).
+
+## Architecture
+
+### References
+
+* [Ardupilot SITL JSON Backend](https://github.com/ArduPilot/ardupilot/blob/master/libraries/SITL/examples/JSON/readme.md)
+
+
+### What are the main components
+
+* ArduPilot SITL - Runs the autopilot code with SITL
+* Gazebo - Runs the FDM (flight dynamics model)
+
+```mermaid
+
+```
+
+### How
+
+* ArduPilot SITL sends a binary data out which is the servo outputs
+```
+    uint16 magic = 18458
+    uint16 frame_rate
+    uint32 frame_count
+    uint16 pwm[16]
+```
+* Gazebo receives this, uses controller XML to define what to do with the PWM.
+  * The physics engine gets these values, updates the state, and advances, and then reads the state.
+* Gazebo replies with the JSON state
+  * At minimum, it includes what the EKF needs
+    * pose
+    * rates
+    * IMU's
+* Lockstep means 1 servo outputs from SITL triggers 1 JSON FDM state
+  * Either end can stop and wait for the next data
+
+* The JSON packet also supports some simple data:
+  * Range sensors
+  * Airspeed
+
+* The SITL model has a SIM_JSON backend that periodically sends out to port. 
+* Once a server replies (gazebo plugin), it replies SITL back an address.
+
+* The FDM runs in Gazebo, The "controller" is SITL.
+
+The problem with the JSON packet is that it all needs to be sent at 1000Hz, but not all sensors provide that.
+It doesn't scale well as a model. The core JSON FDM is ok. For other stuff like GPS, Lidar, should likely use a different channel (message based). The messages decoded in SIM_JSON are what's currently possible.
+We don't plan to extend this.
+
+Gazebo has a NavSat sensor, this is currently not sent to ArduPilot. Because ArduPilot only supplies servo outputs,
+these simulation parameters are not mirrored across to Gazebo.
+
+
+ArduPilot SITL runs Linux ArduPilot binary that has setup() and loop().
+This is almost the same binary as on a FC.
+
+Historically, the ArduPilot gazebo plugin did its own controller. More recently, the commands get forwarded over gazewbo transport to run joint velocity controllers. Servo commands go from ardupilot gazebo plugin, put on gz bus, and picked up by more standard plugins. With a model set up in this way, it's more similar to PX4.
+
+PX4's equivalent puts data directly on gazebo transport, but it prevents lockstep. 
+There is some detail on how gazebo physics work in gazebo (TODO add links).
+
+The ArduPilot plugin exists to provide lockstep these days, but this needs included in the model SDF.
+Thus, PX4 models can only depend on gazebo packages, which makes them more shareable. 
+This can be converged.
+
+Any sensor data from gazebo goes through JSON today, anything else needs another mechanism. 
+
+There is an example of sending avoidance data from Lidar over MAVROS API (TODO add rover URL).
+This is an open item of work - it should be topic-based.
+One simple way is use one socket for each channel, but this doesn't scale well.
+Multiple vehicles need sane socket ID's.
+
+Or, listen to gazebo transport directly in SITL, which is ZMQ and protobuf. Sim on hardware currently works, so
+we have to decide.
+
+Use cases:
+* Simulate GPS in physics engine and use it in SITL
+* Simulate Camera
+* Proximity Sensor
+
+In many cases, it's a companion computer that processes the simulated data, such as a companion data.
+Key question: What are we expecting the autopilot to process.
+
+
+ArduPilot SITL by itself bolts on a physics engine and controller in the same package. 
+Usually, FC on hardware just runs "controller". 
+HIL testing has phsyics engine embedded in sim_vehicle. 
+SITL doesn't have collisions or other vehicles. 
+
+Running AP with Gazebo is different than running SITL alone.
+Realflight and JSBsim have good dynamics.
+
+### Extending to other autopilots
+
+Gazebo is given commands to move actuators, gazebo handles all physics. Render engine broadcasts info and displays it.
+Gazebo can run the FDM on the vehicle and all other entities, or it could simulate parts of the world.
+
+Assumptions:
+* You have an FDM already running for the vehicle
+* You want use gazebo to show the path of the vehicle, but we want to add other things
+* Gazebo could simulate external physics
+
+
+
+### Lockstep
+
+### FDM
